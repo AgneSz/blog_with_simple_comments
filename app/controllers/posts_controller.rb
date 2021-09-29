@@ -1,17 +1,25 @@
 class PostsController < ApplicationController
   before_action :set_post, only: %i[ show edit update destroy ]
   before_action :authenticate_user!, except: [:index, :show]
+  # BELOW METHOD COMES FROM APPLICATION CONTROLLER - HELPER - CLASS METHOD?
+  # METHOD FROM CONTROLLER USED IN ANOTHER CONTROLLER
   before_action :is_admin!, except: [:index, :show]
 
+  POSTS_PER_PAGE = 10
 
   # GET /posts or /posts.json
   def index
-    @posts = Post.all
+    #params are strings => array, to_i to convert it to integer
+    @page = params.fetch(:page, 0).to_i
+    @all_posts = Post.all.order("created_at DESC")
+    @number_of_pages = @all_posts.length/POSTS_PER_PAGE
+    @posts = @all_posts.offset(@page * POSTS_PER_PAGE).limit(POSTS_PER_PAGE)
+    # .order("created_at DESC").paginate(:page => params[:page], :per_page => 10)
   end
 
   # GET /posts/1 or /posts/1.json
   def show
-    view = @post.view + 1
+    views = @post.views + 1
     @post.update(views: views)
   end
 
@@ -27,6 +35,8 @@ class PostsController < ApplicationController
   # POST /posts or /posts.json
   def create
     @post = Post.new(post_params)
+
+    @post.user = current_user
 
     respond_to do |format|
       if @post.save
@@ -69,6 +79,6 @@ class PostsController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def post_params
-      params.require(:post).permit(:title, :views, :user_id)
+      params.require(:post).permit(:title, :body, :thumbnail, :banner)
     end
 end
